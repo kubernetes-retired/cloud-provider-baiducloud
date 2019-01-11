@@ -165,11 +165,10 @@ func (bc *BCECloud) DeleteRoute(ctx context.Context, clusterName string, kubeRou
 				glog.V(3).Infof("Delete VPC route error %s", err.Error())
 				return err
 			}
-			_ = fmt.Sprintf("删除路由: 下一跳 %q 目的IP %q", kubeRoute.TargetNode, kubeRoute.DestinationCIDR)
 		}
 	}
 
-	glog.V(3).Infof("DeleteRoute: clusterName=%q instance=%q cidr=%q", clusterName, kubeRoute.TargetNode, kubeRoute.DestinationCIDR)
+	glog.V(3).Infof("DeleteRoute: success, clusterName=%q instance=%q cidr=%q", clusterName, kubeRoute.TargetNode, kubeRoute.DestinationCIDR)
 
 	return nil
 }
