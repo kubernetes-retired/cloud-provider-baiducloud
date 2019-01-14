@@ -174,6 +174,23 @@ func (bc *BCECloud) EnsureLoadBalancerDeleted(ctx context.Context, clusterName s
 	return nil
 }
 
+// workaround to support old version, can be removed if not support old version
+func (bc *BCECloud) workAround(service *v1.Service) {
+	lb, exists, err := bc.getBCELoadBalancer(cloudprovider.GetLoadBalancerName(service))
+	if err != nil {
+		return
+	}
+	if !exists {
+		return
+	}
+	if service.Annotations == nil {
+		service.Annotations = make(map[string]string)
+	}
+	// TODO: 不会更新最终Service的annotaion，因为ip没变
+	service.Annotations[ServiceAnnotationLoadBalancerId] = lb.BlbId
+	glog.V(2).Infof("[%v %v] WorkAround for old version, lb: %v", service.Namespace, service.Name, lb)
+}
+
 func (bc *BCECloud) validateService(service *v1.Service) error {
 	if len(service.Spec.Ports) == 0 {
 		return fmt.Errorf("requested load balancer with no ports")
@@ -462,23 +479,6 @@ func (bc *BCECloud) ensureEIPWithSpecificIP(ctx context.Context, clusterName str
 	return pubIP, nil
 }
 
-// workaround to support old version, can be removed if not support old version
-func (bc *BCECloud) workAround(service *v1.Service) {
-	lb, exists, err := bc.getBCELoadBalancer(cloudprovider.GetLoadBalancerName(service))
-	if err != nil {
-		return
-	}
-	if !exists {
-		return
-	}
-	if service.Annotations == nil {
-		service.Annotations = make(map[string]string)
-	}
-	// TODO: 不会更新最终Service的annotaion，因为ip没变
-	service.Annotations[ServiceAnnotationLoadBalancerId] = lb.BlbId
-	glog.V(2).Infof("[%v %v] WorkAround for old version, lb: %v", service.Namespace, service.Name, lb)
-}
-
 func (bc *BCECloud) getBCELoadBalancer(name string) (lb *blb.LoadBalancer, exists bool, err error) {
 	args := blb.DescribeLoadBalancersArgs{
 		LoadBalancerName: name,
@@ -579,6 +579,7 @@ func (bc *BCECloud) reconcileListeners(service *v1.Service, lb *blb.LoadBalancer
 func (bc *BCECloud) findPortListener(lb *blb.LoadBalancer, port int, proto string) (PortListener, error) {
 	switch proto {
 	case "HTTP":
+		// TODO
 	case "TCP":
 		args := blb.DescribeTCPListenerArgs{
 			LoadBalancerId: lb.BlbId,
@@ -597,7 +598,9 @@ func (bc *BCECloud) findPortListener(lb *blb.LoadBalancer, port int, proto strin
 			Protocol: proto,
 		}, nil
 	case "HTTPS":
+		// TODO
 	case "UDP":
+		// TODO
 	}
 	return PortListener{}, fmt.Errorf("protocol not match: %s", proto)
 }
@@ -628,6 +631,7 @@ func (bc *BCECloud) getAllListeners(lb *blb.LoadBalancer) ([]PortListener, error
 func (bc *BCECloud) createListener(lb *blb.LoadBalancer, pl PortListener) error {
 	switch pl.Protocol {
 	case "HTTP":
+		// TODO
 	case "TCP":
 		args := blb.CreateTCPListenerArgs{
 			LoadBalancerId: lb.BlbId,
@@ -641,7 +645,9 @@ func (bc *BCECloud) createListener(lb *blb.LoadBalancer, pl PortListener) error 
 		}
 		return nil
 	case "HTTPS":
+		// TODO
 	case "UDP":
+		// TODO
 	}
 	return fmt.Errorf("CreateListener protocol not match: %s", pl.Protocol)
 }
@@ -649,6 +655,7 @@ func (bc *BCECloud) createListener(lb *blb.LoadBalancer, pl PortListener) error 
 func (bc *BCECloud) updateListener(lb *blb.LoadBalancer, pl PortListener) error {
 	switch pl.Protocol {
 	case "HTTP":
+		// TODO
 	case "TCP":
 		args := blb.UpdateTCPListenerArgs{
 			LoadBalancerId: lb.BlbId,
@@ -662,7 +669,9 @@ func (bc *BCECloud) updateListener(lb *blb.LoadBalancer, pl PortListener) error 
 		}
 		return nil
 	case "HTTPS":
+		// TODO
 	case "UDP":
+		// TODO
 	}
 	return fmt.Errorf("updateListener protocol not match: %s", pl.Protocol)
 }
