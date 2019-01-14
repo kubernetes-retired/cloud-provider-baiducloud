@@ -1,4 +1,5 @@
 # CCE Cloud Controller Manager(CCM)
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/baidu/cloud-provider-baiducloud)](https://goreportcard.com/report/github.com/baidu/cloud-provider-baiducloud)
 
 **CCE Cloud Controller Manager** is a Kubernetes Cloud Controller Manager implementation (or out-of-tree cloud-provider) for Cloud-Container-Engine(CCE) on BCE.
