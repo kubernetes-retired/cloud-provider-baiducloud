@@ -19,21 +19,21 @@ package cloud_provider
 import (
 	"strconv"
 
-	"k8s.io/api/core/v1"
 	"github.com/golang/glog"
+	"k8s.io/api/core/v1"
 )
 
 const (
 	// ServiceAnnotationLoadBalancerPrefix is the annotation prefix of LoadBalancer
-	ServiceAnnotationLoadBalancerPrefix      = "service.beta.kubernetes.io/cce-load-balancer-"
+	ServiceAnnotationLoadBalancerPrefix = "service.beta.kubernetes.io/cce-load-balancer-"
 	// ServiceAnnotationLoadBalancerId is the annotation of LoadBalancerId
-	ServiceAnnotationLoadBalancerId          = ServiceAnnotationLoadBalancerPrefix + "id"
+	ServiceAnnotationLoadBalancerId = ServiceAnnotationLoadBalancerPrefix + "id"
 	// ServiceAnnotationLoadBalancerInternalVpc is the annotation of LoadBalancerInternalVpc
 	ServiceAnnotationLoadBalancerInternalVpc = ServiceAnnotationLoadBalancerPrefix + "internal-vpc"
 	ServiceAnnotationLoadBalancerAllocateVip = ServiceAnnotationLoadBalancerPrefix + "allocate-vip"
 
 	// ServiceAnnotationElasticIPPrefix is the annotation prefix of ElasticIP
-	ServiceAnnotationElasticIPPrefix      = "service.beta.kubernetes.io/cce-elastic-ip-"
+	ServiceAnnotationElasticIPPrefix = "service.beta.kubernetes.io/cce-elastic-ip-"
 	// ServiceAnnotationElasticIPName is the annotation of ElasticIPName
 	ServiceAnnotationElasticIPName = ServiceAnnotationElasticIPPrefix + "name"
 	// ServiceAnnotationElasticIPPaymentTiming is the annotation of ElasticIPPaymentTiming
@@ -48,17 +48,17 @@ const (
 
 const (
 	// NodeAnnotationPrefix is the annotation prefix of Node
-	NodeAnnotationPrefix          = "node.alpha.kubernetes.io/"
+	NodeAnnotationPrefix = "node.alpha.kubernetes.io/"
 	// NodeAnnotationVpcId is the annotation of VpcId on node
-	NodeAnnotationVpcId           = NodeAnnotationPrefix + "vpc-id"
+	NodeAnnotationVpcId = NodeAnnotationPrefix + "vpc-id"
 	// NodeAnnotationVpcRouteTableId is the annotation of VpcRouteTableId on node
 	NodeAnnotationVpcRouteTableId = NodeAnnotationPrefix + "vpc-route-table-id"
 	// NodeAnnotationVpcRouteRuleId is the annotation of VpcRouteRuleId on node
-	NodeAnnotationVpcRouteRuleId  = NodeAnnotationPrefix + "vpc-route-rule-id"
+	NodeAnnotationVpcRouteRuleId = NodeAnnotationPrefix + "vpc-route-rule-id"
 )
 
 // ExtractServiceAnnotation extract annotations from service
-func ExtractServiceAnnotation(service *v1.Service) (*ServiceAnnotation) {
+func ExtractServiceAnnotation(service *v1.Service) *ServiceAnnotation {
 	glog.V(4).Infof("start to ExtractServiceAnnotation: %v", service.Annotations)
 	result := &ServiceAnnotation{}
 	annotation := make(map[string]string)
