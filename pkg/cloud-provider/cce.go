@@ -81,7 +81,7 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		glog.V(4).Infof("Init CCE cloud with cloudConfig: %v\n", cloudConfig)
+		glog.V(3).Infof("Init CCE cloud with cloudConfig: %v\n", cloudConfig)
 		if cloudConfig.MasterID == "" {
 			return nil, fmt.Errorf("Cloud config mast have a Master ID\n")
 		}
@@ -128,20 +128,20 @@ func (bc *Baiducloud) Initialize(clientBuilder controller.ControllerClientBuilde
 }
 
 func (bc *Baiducloud) SetInformers(informerFactory informers.SharedInformerFactory) {
-	glog.Infof("Setting up informers for Baiducloud")
+	glog.V(3).Infof("Setting up informers for Baiducloud")
 	nodeInformer := informerFactory.Core().V1().Nodes().Informer()
 	nodeInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			node := obj.(*v1.Node)
-			glog.V(4).Infof("Node add: ", node.String())
+			glog.V(3).Infof("Node add: ", node.String())
 		},
 		UpdateFunc: func(prev, obj interface{}) {
 			node := obj.(*v1.Node)
-			glog.V(4).Infof("Node update: ", node.String())
+			glog.V(3).Infof("Node update: ", node.String())
 		},
 		DeleteFunc: func(obj interface{}) {
 			node := obj.(*v1.Node)
-			glog.V(4).Infof("Node delete: ", node.String())
+			glog.V(3).Infof("Node delete: ", node.String())
 		},
 	})
 }

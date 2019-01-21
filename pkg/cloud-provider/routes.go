@@ -156,7 +156,7 @@ func (bc *Baiducloud) CreateRoute(ctx context.Context, clusterName string, nameH
 // DeleteRoute deletes the specified managed route
 // Route should be as returned by ListRoutes
 func (bc *Baiducloud) DeleteRoute(ctx context.Context, clusterName string, kubeRoute *cloudprovider.Route) error {
-	glog.V(4).Infof("DeleteRoute: deleting route. clusterName=%q instance=%q cidr=%q", clusterName, kubeRoute.TargetNode, kubeRoute.DestinationCIDR)
+	glog.V(3).Infof("DeleteRoute: deleting route. clusterName=%q instance=%q cidr=%q", clusterName, kubeRoute.TargetNode, kubeRoute.DestinationCIDR)
 	vpcTable, err := bc.getVpcRouteTable()
 	if err != nil {
 		glog.V(3).Infof("getVpcRouteTable error %s", err.Error())
