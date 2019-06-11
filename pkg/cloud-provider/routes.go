@@ -140,6 +140,25 @@ func (bc *Baiducloud) CreateRoute(ctx context.Context, clusterName string, nameH
 		}
 	}
 
+	// check node resource in k8s has advertise route annotation, if is false, not create route
+	curNode, err := bc.kubeClient.CoreV1().Nodes().Get(string(kubeRoute.TargetNode), metav1.GetOptions{})
+	if err != nil {
+		if !strings.Contains(err.Error(), "not found") {
+			return err
+		}
+	}
+
+	if curNode.Annotations == nil {
+		curNode.Annotations = make(map[string]string)
+	}
+	nodeAnnotation, err := ExtractNodeAnnotation(curNode)
+	if err != nil {
+		return err
+	}
+	if !nodeAnnotation.AdvertiseRoute {
+		return nil
+	}
+
 	args := vpc.CreateRouteRuleArgs{
 		RouteTableID:       vpcRoutes[0].RouteTableID,
 		NexthopType:        "custom",

@@ -82,6 +82,8 @@ const (
 
 	// NodeAnnotationCCMVersion is the version of CCM
 	NodeAnnotationCCMVersion = NodeAnnotationPrefix + "ccm-version"
+	// NodeAnnotationAdvertiseRoute indicates whether to advertise route to vpc route table
+	NodeAnnotationAdvertiseRoute = NodeAnnotationPrefix + "advertise-route"
 )
 
 // ServiceAnnotation contains annotations from service
@@ -113,6 +115,7 @@ type NodeAnnotation struct {
 	VpcRouteTableId string
 	VpcRouteRuleId  string
 	CCMVersion      string
+	AdvertiseRoute  bool
 }
 
 // ExtractServiceAnnotation extract annotations from service
@@ -264,6 +267,17 @@ func ExtractNodeAnnotation(node *v1.Node) (*NodeAnnotation, error) {
 	ccmVersion, ok := annotation[NodeAnnotationCCMVersion]
 	if ok {
 		result.CCMVersion = ccmVersion
+	}
+
+	advertiseRoute, ok := annotation[NodeAnnotationAdvertiseRoute]
+	if ok {
+		advertise, err := strconv.ParseBool(advertiseRoute)
+		if err != nil {
+			result.AdvertiseRoute = true
+		}
+		result.AdvertiseRoute = advertise
+	} else {
+		result.AdvertiseRoute = true
 	}
 
 	return result, nil
