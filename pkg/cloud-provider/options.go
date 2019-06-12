@@ -271,12 +271,8 @@ func ExtractNodeAnnotation(node *v1.Node) (*NodeAnnotation, error) {
 
 	advertiseRoute, ok := annotation[NodeAnnotationAdvertiseRoute]
 	if ok {
-		advertise, err := strconv.ParseBool(advertiseRoute)
-		if err != nil {
-			result.AdvertiseRoute = true
-		} else {
-			result.AdvertiseRoute = advertise
-		}
+		advertise, _ := strconv.ParseBool(advertiseRoute)
+		result.AdvertiseRoute = advertise
 	} else {
 		result.AdvertiseRoute = true
 	}
