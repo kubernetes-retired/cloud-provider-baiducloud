@@ -25,6 +25,11 @@ import (
 	"k8s.io/cloud-provider-baiducloud/pkg/cloud-sdk/blb"
 )
 
+const DefaultBLBRSNum int = 50
+const BLBRSNumLimit int = 100
+const DefaultBLBRSWeight int = 100
+const BLBRSWeightZero int = 0
+
 func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.Node, lb *blb.LoadBalancer) error {
 	// extract annotation
 	anno, err := ExtractServiceAnnotation(service)
@@ -32,9 +37,9 @@ func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.N
 		return fmt.Errorf("failed to ExtractServiceAnnotation %s, err: %v", service.Name, err)
 	}
 	// default rs num of a blb is 50
-	targetRsNum := 50
+	targetRsNum := DefaultBLBRSNum
 	if anno.LoadBalancerRsNum > 0 {
-		if anno.LoadBalancerRsNum < 100 {
+		if anno.LoadBalancerRsNum < BLBRSNumLimit {
 			targetRsNum = anno.LoadBalancerRsNum
 		} else {
 			glog.Infof("annotation rs num %d > 100, not use this value", anno.LoadBalancerRsNum)
@@ -62,52 +67,56 @@ func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.N
 	if err != nil {
 		return err
 	}
-	existingRsMap := make(map[string]int, 0)
+	// find rs to delete and valid rs ( weight > 0 )
+	validRsMap := make(map[string]int, 0)
+	var rsToDelete []string
 	for _, rs := range allRs {
-		existingRsMap[rs.InstanceId] = 0
-	}
-
-	// find rs to delete
-	var nodesToAdd, nodesToDelete []string
-	numToDel := len(existingRsMap) - targetRsNum
-	for rs := range existingRsMap {
-		_, exist := candidateBackendsMap[rs]
-		if !exist || numToDel > 0 {
-			nodesToDelete = append(nodesToDelete, rs)
-			numToDel = numToDel - 1
+		if rs.Weight == 0 {
+			rsToDelete = append(rsToDelete, rs.InstanceId)
+		}else {
+			validRsMap[rs.InstanceId] = rs.Weight
 		}
 	}
-	glog.Infof("find nodes %v to delete from BLB %s", nodesToDelete, lb.BlbId)
+	glog.Infof("find nodes %v to delete from BLB %s", rsToDelete, lb.BlbId)
+
+	// find rs to change weight to 0
+	var rsToAdd, rsToChangeWeight []blb.BackendServer
+	numToChangeWeight := len(validRsMap) - targetRsNum
+	for rsId := range validRsMap {
+		_, exist := candidateBackendsMap[rsId]
+		if !exist || numToChangeWeight > 0 {
+			rsToChangeWeight = append(rsToChangeWeight, blb.BackendServer{
+				InstanceId: rsId,
+				Weight:     BLBRSWeightZero,
+			})
+			numToChangeWeight = numToChangeWeight -1
+		}
+	}
+	glog.Infof("find nodes %v to change weight to 0 from BLB %s", rsToChangeWeight, lb.BlbId)
 
 	// find rs to add
-	if len(existingRsMap) < targetRsNum {
-		numToAdd := targetRsNum - len(existingRsMap)
-		for node := range candidateBackendsMap {
+	if len(validRsMap) < targetRsNum {
+		numToAdd := targetRsNum - len(validRsMap)
+		for insId := range candidateBackendsMap {
 			if numToAdd == 0 {
 				break
 			}
-			if _, exist := existingRsMap[node]; !exist {
-				nodesToAdd = append(nodesToAdd, node)
+			if _, exist := validRsMap[insId]; !exist {
+				rsToAdd = append(rsToAdd, blb.BackendServer{
+					InstanceId: insId,
+					Weight: DefaultBLBRSWeight,
+				})
 				numToAdd = numToAdd - 1
 			}
 		}
 	}
-	glog.Infof("find nodes %v to add to BLB %s", nodesToAdd, lb.BlbId)
+	glog.Infof("find nodes %v to add to BLB %s", rsToAdd, lb.BlbId)
 
 	// add rs
-	var addList []blb.BackendServer
-	if len(nodesToAdd) > 0 {
-		for _, insId := range nodesToAdd {
-			addList = append(addList, blb.BackendServer{
-				InstanceId: insId,
-				Weight: 100,
-			})
-		}
-	}
-	if len(addList) > 0 {
+	if len(rsToAdd) > 0 {
 		args := blb.AddBackendServersArgs{
 			LoadBalancerId: lb.BlbId,
-			BackendServerList: addList,
+			BackendServerList: rsToAdd,
 		}
 		err = bc.clientSet.Blb().AddBackendServers(&args)
 		if err != nil {
@@ -115,11 +124,22 @@ func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.N
 		}
 	}
 
+	// change rs weight to 0
+	if len(rsToChangeWeight) > 0 {
+		args := blb.UpdateBackendServersArgs{
+			LoadBalancerId: lb.BlbId,
+			BackendServerList: rsToChangeWeight,
+		}
+		err = bc.clientSet.Blb().UpdateBackendServers(&args)
+		if err != nil {
+			return err
+		}
+	}
 	// remove rs
-	if len(nodesToDelete) > 0 {
+	if len(rsToDelete) > 0 {
 		args := blb.RemoveBackendServersArgs{
 			LoadBalancerId: lb.BlbId,
-			BackendServerList: nodesToDelete,
+			BackendServerList: rsToDelete,
 		}
 		err = bc.clientSet.Blb().RemoveBackendServers(&args)
 		if err != nil {
