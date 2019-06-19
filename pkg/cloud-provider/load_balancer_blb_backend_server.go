@@ -74,6 +74,7 @@ func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.N
 			nodesToDelete = append(nodesToDelete, rs)
 		}
 	}
+	glog.Infof("find nodes %v to delete from BLB %s", nodesToDelete, lb.BlbId)
 
 	// find rs to add
 	if len(existingRsMap) < targetRsNum {
@@ -88,6 +89,7 @@ func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.N
 			}
 		}
 	}
+	glog.Infof("find nodes %v to add to BLB %s", nodesToAdd, lb.BlbId)
 
 	// add rs
 	var addList []blb.BackendServer
