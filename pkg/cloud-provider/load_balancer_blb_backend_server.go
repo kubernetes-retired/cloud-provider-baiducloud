@@ -69,9 +69,12 @@ func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.N
 
 	// find rs to delete
 	var nodesToAdd, nodesToDelete []string
+	numToDel := len(existingRsMap) - targetRsNum
 	for rs := range existingRsMap {
-		if _, exist := candidateBackendsMap[rs]; !exist {
+		_, exist := candidateBackendsMap[rs]
+		if !exist || numToDel > 0 {
 			nodesToDelete = append(nodesToDelete, rs)
+			numToDel = numToDel - 1
 		}
 	}
 	glog.Infof("find nodes %v to delete from BLB %s", nodesToDelete, lb.BlbId)
