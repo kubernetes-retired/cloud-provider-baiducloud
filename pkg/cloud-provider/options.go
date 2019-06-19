@@ -95,7 +95,7 @@ type ServiceAnnotation struct {
 	LoadBalancerAllocateVip                string
 	LoadBalancerSubnetId                   string
 	LoadBalancerScheduler                  string
-	LoadBalancerRsNum int
+	LoadBalancerRsNum                      int
 	LoadBalancerHealthCheckTimeoutInSecond int
 	LoadBalancerHealthCheckInterval        int
 	LoadBalancerUnhealthyThreshold         int
@@ -157,6 +157,8 @@ func ExtractServiceAnnotation(service *v1.Service) (*ServiceAnnotation, error) {
 		i, err := strconv.Atoi(loadBalancerRsNum)
 		if err != nil {
 			return nil, fmt.Errorf("ServiceAnnotationLoadBalancerRsNum must be int, err: %v", err)
+		} else if i <= 0 || i > BLBMaxRSNum {
+			return nil, fmt.Errorf("ServiceAnnotationLoadBalancerRsNum must be in (0, 100)")
 		} else {
 			result.LoadBalancerRsNum = i
 		}

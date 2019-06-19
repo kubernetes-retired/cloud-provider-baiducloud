@@ -26,9 +26,8 @@ import (
 )
 
 const DefaultBLBRSNum int = 50
-const BLBRSNumLimit int = 100
+const BLBMaxRSNum int = 100
 const DefaultBLBRSWeight int = 100
-const BLBRSWeightZero int = 0
 
 func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.Node, lb *blb.LoadBalancer) error {
 	// extract annotation
@@ -39,19 +38,15 @@ func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.N
 	// default rs num of a blb is 50
 	targetRsNum := DefaultBLBRSNum
 	if anno.LoadBalancerRsNum > 0 {
-		if anno.LoadBalancerRsNum < BLBRSNumLimit {
-			targetRsNum = anno.LoadBalancerRsNum
-		} else {
-			glog.Infof("annotation rs num %d > 100, not use this value", anno.LoadBalancerRsNum)
-		}
+		targetRsNum = anno.LoadBalancerRsNum
 	}
 	if len(nodes) < targetRsNum {
 		targetRsNum = len(nodes)
 	}
-	glog.Infof("nodes num is %d, target Rs num is %d", len(nodes), targetRsNum)
+	glog.Infof("nodes num is %d, target rs num is %d", len(nodes), targetRsNum)
 
-	// turn candidate nodes list to map
-	candidateBackendsMap := make(map[string]int, 0)
+	// turn kube nodes list to backend list
+	var candidateBackends []blb.BackendServer
 	for _, node := range nodes {
 		splitted := strings.Split(node.Spec.ProviderID, "//")
 		if len(splitted) < 1 {
@@ -59,63 +54,27 @@ func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.N
 			continue
 		}
 		name := splitted[1]
-		candidateBackendsMap[name] = 0
+		candidateBackends = append(candidateBackends, blb.BackendServer{
+			InstanceId: name,
+		})
 	}
 
 	// get all existing rs from lb and change to map
-	allRs, err := bc.getAllBackendServer(lb)
+	existingBackends, err := bc.getAllBackendServer(lb)
 	if err != nil {
 		return err
 	}
-	// find rs to delete and valid rs ( weight > 0 )
-	validRsMap := make(map[string]int, 0)
-	var rsToDelete []string
-	for _, rs := range allRs {
-		if rs.Weight == 0 {
-			rsToDelete = append(rsToDelete, rs.InstanceId)
-		}else {
-			validRsMap[rs.InstanceId] = rs.Weight
-		}
-	}
-	glog.Infof("find nodes %v to delete from BLB %s", rsToDelete, lb.BlbId)
 
-	// find rs to change weight to 0
-	var rsToAdd, rsToChangeWeight []blb.BackendServer
-	numToChangeWeight := len(validRsMap) - targetRsNum
-	for rsId := range validRsMap {
-		_, exist := candidateBackendsMap[rsId]
-		if !exist || numToChangeWeight > 0 {
-			rsToChangeWeight = append(rsToChangeWeight, blb.BackendServer{
-				InstanceId: rsId,
-				Weight:     BLBRSWeightZero,
-			})
-			numToChangeWeight = numToChangeWeight -1
-		}
-	}
-	glog.Infof("find nodes %v to change weight to 0 from BLB %s", rsToChangeWeight, lb.BlbId)
-
-	// find rs to add
-	if len(validRsMap) < targetRsNum {
-		numToAdd := targetRsNum - len(validRsMap)
-		for insId := range candidateBackendsMap {
-			if numToAdd == 0 {
-				break
-			}
-			if _, exist := validRsMap[insId]; !exist {
-				rsToAdd = append(rsToAdd, blb.BackendServer{
-					InstanceId: insId,
-					Weight: DefaultBLBRSWeight,
-				})
-				numToAdd = numToAdd - 1
-			}
-		}
+	rsToAdd, rsToDel, err := mergeBackend(candidateBackends, existingBackends, targetRsNum)
+	if err != nil {
+		return err
 	}
 	glog.Infof("find nodes %v to add to BLB %s", rsToAdd, lb.BlbId)
+	glog.Infof("find nodes %v to del from BLB %s", rsToDel, lb.BlbId)
 
-	// add rs
 	if len(rsToAdd) > 0 {
 		args := blb.AddBackendServersArgs{
-			LoadBalancerId: lb.BlbId,
+			LoadBalancerId:    lb.BlbId,
 			BackendServerList: rsToAdd,
 		}
 		err = bc.clientSet.Blb().AddBackendServers(&args)
@@ -124,22 +83,14 @@ func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.N
 		}
 	}
 
-	// change rs weight to 0
-	if len(rsToChangeWeight) > 0 {
-		args := blb.UpdateBackendServersArgs{
-			LoadBalancerId: lb.BlbId,
-			BackendServerList: rsToChangeWeight,
+	if len(rsToDel) > 0 {
+		var delList []string
+		for _, rs := range rsToDel {
+			delList = append(delList, rs.InstanceId)
 		}
-		err = bc.clientSet.Blb().UpdateBackendServers(&args)
-		if err != nil {
-			return err
-		}
-	}
-	// remove rs
-	if len(rsToDelete) > 0 {
 		args := blb.RemoveBackendServersArgs{
-			LoadBalancerId: lb.BlbId,
-			BackendServerList: rsToDelete,
+			LoadBalancerId:    lb.BlbId,
+			BackendServerList: delList,
 		}
 		err = bc.clientSet.Blb().RemoveBackendServers(&args)
 		if err != nil {
@@ -148,6 +99,78 @@ func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.N
 	}
 
 	return nil
+}
+
+/*
+case 1:
+candidateBackends: ["1", "2", "3"] existingBackends: ["4", "5"] targetBackendsNum: 1
+rsToAdd: ["1"]  rsToDel: ["4", "5"]
+
+case 2:
+candidateBackends: ["1", "2", "3", "4"] existingBackends: ["4", "5"] targetBackendsNum: 1
+rsToAdd: []  rsToDel: ["5"]
+
+case 3:
+candidateBackends: ["1", "2", "3", "4"] existingBackends: ["4", "5"] targetBackendsNum: 3
+rsToAdd: ["1", "2"]  rsToDel: ["5"]
+*/
+func mergeBackend(candidateBackends, existingBackends []blb.BackendServer, targetBackendsNum int) (
+	[]blb.BackendServer, []blb.BackendServer, error) {
+
+	if targetBackendsNum > len(candidateBackends) || targetBackendsNum <= 0 {
+		return nil, nil, fmt.Errorf("targetBackendsNum %d is invalid", targetBackendsNum)
+	}
+
+	// turn existingBackends to map
+	existingBackendsMap := make(map[string]int)
+	for _, backend := range existingBackends {
+		existingBackendsMap[backend.InstanceId] = 0
+	}
+
+	// turn candidateBackends to map
+	candidateBackendsMap := make(map[string]int)
+	for _, backend := range candidateBackends {
+		candidateBackendsMap[backend.InstanceId] = 0
+	}
+
+	// find rs to delete
+	var rsToAdd, rsToDel []blb.BackendServer
+	for insId := range existingBackendsMap {
+		_, exist := candidateBackendsMap[insId]
+		if !exist {
+			rsToDel = append(rsToDel, blb.BackendServer{
+				InstanceId: insId,
+			})
+			delete(existingBackendsMap, insId)
+		}
+	}
+
+	numToDel := len(existingBackendsMap) - targetBackendsNum
+	for insId := range existingBackendsMap {
+		if numToDel > 0 {
+			rsToDel = append(rsToDel, blb.BackendServer{InstanceId: insId})
+			delete(existingBackendsMap, insId)
+			numToDel = numToDel - 1
+		}
+	}
+
+	// find rs to add
+	if len(existingBackendsMap) < targetBackendsNum {
+		numToAdd := targetBackendsNum - len(existingBackendsMap)
+		for insId := range candidateBackendsMap {
+			if numToAdd == 0 {
+				break
+			}
+			if _, exist := existingBackendsMap[insId]; !exist {
+				rsToAdd = append(rsToAdd, blb.BackendServer{
+					InstanceId: insId,
+					Weight:     DefaultBLBRSWeight,
+				})
+				numToAdd = numToAdd - 1
+			}
+		}
+	}
+	return rsToAdd, rsToDel, nil
 }
 
 func (bc *Baiducloud) getAllBackendServer(lb *blb.LoadBalancer) ([]blb.BackendServer, error) {
