@@ -37,13 +37,13 @@ func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.N
 		if anno.LoadBalancerRsNum < 100 {
 			targetRsNum = anno.LoadBalancerRsNum
 		} else {
-			glog.Info("annotation rs num %d > 100, not use this value", anno.LoadBalancerRsNum)
+			glog.Infof("annotation rs num %d > 100, not use this value", anno.LoadBalancerRsNum)
 		}
 	}
 	if len(nodes) < targetRsNum {
 		targetRsNum = len(nodes)
 	}
-	glog.Info("nodes num is %s, target Rs num is %s", len(nodes), targetRsNum)
+	glog.Infof("nodes num is %d, target Rs num is %d", len(nodes), targetRsNum)
 
 	// turn candidate nodes list to map
 	candidateBackendsMap := make(map[string]int, 0)

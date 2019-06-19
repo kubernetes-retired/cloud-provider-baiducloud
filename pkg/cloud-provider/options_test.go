@@ -50,4 +50,15 @@ func TestExtractServiceAnnotation(t *testing.T) {
 	if result.LoadBalancerSubnetId != "abc" {
 		t.Errorf("extrac service annotation wrong")
 	}
+
+	data[ServiceAnnotationLoadBalancerRsNum] = "100"
+	svc.SetAnnotations(data)
+
+	result, err = ExtractServiceAnnotation(svc)
+	if err != nil {
+		t.Errorf("failed to extract service annotation: %v", err)
+	}
+	if result.LoadBalancerRsNum != 100 {
+		t.Errorf("extract service annotation wrong")
+	}
 }
