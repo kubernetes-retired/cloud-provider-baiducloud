@@ -17,54 +17,91 @@ limitations under the License.
 package cloud_provider
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/golang/glog"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/cloud-provider-baiducloud/pkg/cloud-sdk/blb"
 )
 
-func (bc *Baiducloud) reconcileBackendServers(nodes []*v1.Node, lb *blb.LoadBalancer) error {
-	expectedServer := make(map[string]string)
+func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.Node, lb *blb.LoadBalancer) error {
+	// extract annotation
+	anno, err := ExtractServiceAnnotation(service)
+	if err != nil {
+		return fmt.Errorf("failed to ExtractServiceAnnotation %s, err: %v", service.Name, err)
+	}
+	// default rs num of a blb is 50
+	targetRsNum := 50
+	if anno.LoadBalancerRsNum > 0 {
+		if anno.LoadBalancerRsNum < 100 {
+			targetRsNum = anno.LoadBalancerRsNum
+		} else {
+			glog.Info("annotation rs num %d > 100, not use this value", anno.LoadBalancerRsNum)
+		}
+	}
+	if len(nodes) < targetRsNum {
+		targetRsNum = len(nodes)
+	}
+	glog.Info("nodes num is %s, target Rs num is %s", len(nodes), targetRsNum)
+
+	// turn candidate nodes list to map
+	candidateBackendsMap := make(map[string]int, 0)
 	for _, node := range nodes {
 		splitted := strings.Split(node.Spec.ProviderID, "//")
+		if len(splitted) < 1 {
+			glog.Warningf("node %s has no spec.providerId", node.Name)
+			continue
+		}
 		name := splitted[1]
-		expectedServer[name] = node.ObjectMeta.Name
+		candidateBackendsMap[name] = 0
 	}
-	allBS, err := bc.getAllBackendServer(lb)
+
+	// get all existing rs from lb and change to map
+	allRs, err := bc.getAllBackendServer(lb)
 	if err != nil {
 		return err
 	}
-	var removeList []string
-	// remove unexpected servers
-	for _, bs := range allBS {
-		_, exists := expectedServer[bs.InstanceId]
-		if !exists {
-			removeList = append(removeList, bs.InstanceId)
-		}
-		delete(expectedServer, bs.InstanceId)
+	existingRsMap := make(map[string]int, 0)
+	for _, rs := range allRs {
+		existingRsMap[rs.InstanceId] = 0
 	}
-	if len(removeList) > 0 {
-		args := blb.RemoveBackendServersArgs{
-			LoadBalancerId:    lb.BlbId,
-			BackendServerList: removeList,
-		}
-		err = bc.clientSet.Blb().RemoveBackendServers(&args)
-		if err != nil {
-			return err
-		}
 
+	// find rs to delete
+	var nodesToAdd, nodesToDelete []string
+	for rs := range existingRsMap {
+		if _, exist := candidateBackendsMap[rs]; !exist {
+			nodesToDelete = append(nodesToDelete, rs)
+		}
 	}
+
+	// find rs to add
+	if len(existingRsMap) < targetRsNum {
+		numToAdd := targetRsNum - len(existingRsMap)
+		for node := range candidateBackendsMap {
+			if numToAdd == 0 {
+				break
+			}
+			if _, exist := existingRsMap[node]; !exist {
+				nodesToAdd = append(nodesToAdd, node)
+				numToAdd = numToAdd - 1
+			}
+		}
+	}
+
+	// add rs
 	var addList []blb.BackendServer
-	// add expected servers
-	for insID, _ := range expectedServer {
-		addList = append(addList, blb.BackendServer{
-			InstanceId: insID,
-			Weight:     100,
-		})
+	if len(nodesToAdd) > 0 {
+		for _, insId := range nodesToAdd {
+			addList = append(addList, blb.BackendServer{
+				InstanceId: insId,
+				Weight: 100,
+			})
+		}
 	}
 	if len(addList) > 0 {
 		args := blb.AddBackendServersArgs{
-			LoadBalancerId:    lb.BlbId,
+			LoadBalancerId: lb.BlbId,
 			BackendServerList: addList,
 		}
 		err = bc.clientSet.Blb().AddBackendServers(&args)
@@ -72,6 +109,19 @@ func (bc *Baiducloud) reconcileBackendServers(nodes []*v1.Node, lb *blb.LoadBala
 			return err
 		}
 	}
+
+	// remove rs
+	if len(nodesToDelete) > 0 {
+		args := blb.RemoveBackendServersArgs{
+			LoadBalancerId: lb.BlbId,
+			BackendServerList: nodesToDelete,
+		}
+		err = bc.clientSet.Blb().RemoveBackendServers(&args)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

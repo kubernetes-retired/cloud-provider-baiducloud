@@ -153,7 +153,7 @@ func (bc *Baiducloud) ensureBLB(ctx context.Context, clusterName string, service
 
 	// update backend server
 	glog.V(2).Infof("[%v %v] EnsureLoadBalancer: reconcileBackendServers!", service.Namespace, service.Name)
-	err = bc.reconcileBackendServers(nodes, lb)
+	err = bc.reconcileBackendServers(service, nodes, lb)
 	if err != nil {
 		return nil, err
 	}
