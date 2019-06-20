@@ -25,7 +25,7 @@ func TestInstance(t *testing.T) {
 	cceClient := cce.NewClient(cce.NewConfig(bceConfig))
 	cceClient.SetDebug(true)
 	t.Log("begin !")
-	ins, _ := cceClient.DescribeCluster(cfg.ClusterID)
+	ins, _ := cceClient.ListInstances(cfg.ClusterID)
 	fmt.Printf("%+v\n", ins)
 
 }
