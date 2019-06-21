@@ -25,8 +25,7 @@ import (
 	"k8s.io/cloud-provider-baiducloud/pkg/cloud-sdk/blb"
 )
 
-const DefaultBLBRSNum int = 50
-const BLBMaxRSNum int = 100
+const BLBMaxRSNum int = 50
 const DefaultBLBRSWeight int = 100
 
 func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.Node, lb *blb.LoadBalancer) error {
@@ -36,7 +35,7 @@ func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.N
 		return fmt.Errorf("failed to ExtractServiceAnnotation %s, err: %v", service.Name, err)
 	}
 	// default rs num of a blb is 50
-	targetRsNum := DefaultBLBRSNum
+	targetRsNum := BLBMaxRSNum
 	if anno.LoadBalancerRsNum > 0 {
 		targetRsNum = anno.LoadBalancerRsNum
 	}

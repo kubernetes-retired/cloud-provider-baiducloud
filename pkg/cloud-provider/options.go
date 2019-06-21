@@ -158,7 +158,7 @@ func ExtractServiceAnnotation(service *v1.Service) (*ServiceAnnotation, error) {
 		if err != nil {
 			return nil, fmt.Errorf("ServiceAnnotationLoadBalancerRsNum must be int, err: %v", err)
 		} else if i <= 0 || i > BLBMaxRSNum {
-			return nil, fmt.Errorf("ServiceAnnotationLoadBalancerRsNum must be in (0, 100)")
+			return nil, fmt.Errorf("ServiceAnnotationLoadBalancerRsNum must be in (0, 50)")
 		} else {
 			result.LoadBalancerRsNum = i
 		}
