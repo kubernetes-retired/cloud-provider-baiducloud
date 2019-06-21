@@ -11,11 +11,11 @@ import (
 
 func TestInstance(t *testing.T) {
 	cfg := &CloudConfig{
-		AccessKeyID:     "8e2fdc833cf44b4895afd0bce14f43cf",
-		SecretAccessKey: "7ae4ae1828694bbc814bb06fa87a43fa",
+		AccessKeyID:     "xx",
+		SecretAccessKey: "xx",
 		Region:          "su",
-		Endpoint:        "100.67.0.45:8693",
-		ClusterID:       "c-PGBW8SAY",
+		Endpoint:        "xx",
+		ClusterID:       "xx",
 	}
 	bceConfig := bce.NewConfig(bce.NewCredentials(cfg.AccessKeyID, cfg.SecretAccessKey))
 	bceConfig.Region = cfg.Region
