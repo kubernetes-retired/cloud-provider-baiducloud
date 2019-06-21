@@ -36,8 +36,8 @@ func (bc *Baiducloud) reconcileBackendServers(service *v1.Service, nodes []*v1.N
 	}
 	// default rs num of a blb is 50
 	targetRsNum := BLBMaxRSNum
-	if anno.LoadBalancerRsNum > 0 {
-		targetRsNum = anno.LoadBalancerRsNum
+	if anno.LoadBalancerRsMaxNum > 0 {
+		targetRsNum = anno.LoadBalancerRsMaxNum
 	}
 	if len(nodes) < targetRsNum {
 		targetRsNum = len(nodes)
@@ -113,6 +113,8 @@ case 3:
 candidateBackends: ["1", "2", "3", "4"] existingBackends: ["4", "5"] targetBackendsNum: 3
 rsToAdd: ["1", "2"]  rsToDel: ["5"]
 */
+// candidateBackends contains all ready kubernetes nodes
+// existingBackends is real rss(nodes) bound to BLB
 func mergeBackend(candidateBackends, existingBackends []blb.BackendServer, targetBackendsNum int) (
 	[]blb.BackendServer, []blb.BackendServer, error) {
 
@@ -134,6 +136,7 @@ func mergeBackend(candidateBackends, existingBackends []blb.BackendServer, targe
 
 	// find rs to delete
 	var rsToAdd, rsToDel []blb.BackendServer
+	// first find rs that is not in kubernetes to delete from blb
 	for insId := range existingBackendsMap {
 		_, exist := candidateBackendsMap[insId]
 		if !exist {
@@ -144,6 +147,7 @@ func mergeBackend(candidateBackends, existingBackends []blb.BackendServer, targe
 		}
 	}
 
+	// then, if number of rs in BLB still > targetBackendsNum, random choose rs in blb to delete
 	numToDel := len(existingBackendsMap) - targetBackendsNum
 	for insId := range existingBackendsMap {
 		if numToDel > 0 {

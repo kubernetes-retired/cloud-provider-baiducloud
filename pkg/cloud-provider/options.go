@@ -37,8 +37,8 @@ const (
 	ServiceAnnotationLoadBalancerAllocateVip = ServiceAnnotationLoadBalancerPrefix + "allocate-vip"
 	//ServiceAnnotationLoadBalancerSubnetId is the annotation which indicates the BCC type subnet the BLB will use
 	ServiceAnnotationLoadBalancerSubnetId = ServiceAnnotationLoadBalancerPrefix + "subnet-id"
-	// ServiceAnnotationLoadBalancerRsNum is the annotation which set max num of rs of the BLB
-	ServiceAnnotationLoadBalancerRsNum = ServiceAnnotationLoadBalancerPrefix + "rs-num"
+	// ServiceAnnotationLoadBalancerRsMaxNum is the annotation which set max num of rs of the BLB
+	ServiceAnnotationLoadBalancerRsMaxNum = ServiceAnnotationLoadBalancerPrefix + "rs-max-num"
 	// TODO:
 	// ServiceAnnotationLoadBalancerScheduler is the annotation of load balancer which can be "RoundRobin"/"LeastConnection"/"Hash"
 	ServiceAnnotationLoadBalancerScheduler = ServiceAnnotationLoadBalancerPrefix + "scheduler"
@@ -95,7 +95,7 @@ type ServiceAnnotation struct {
 	LoadBalancerAllocateVip                string
 	LoadBalancerSubnetId                   string
 	LoadBalancerScheduler                  string
-	LoadBalancerRsNum                      int
+	LoadBalancerRsMaxNum                   int
 	LoadBalancerHealthCheckTimeoutInSecond int
 	LoadBalancerHealthCheckInterval        int
 	LoadBalancerUnhealthyThreshold         int
@@ -152,15 +152,15 @@ func ExtractServiceAnnotation(service *v1.Service) (*ServiceAnnotation, error) {
 		result.LoadBalancerSubnetId = loadBalancerSubnetId
 	}
 
-	loadBalancerRsNum, ok := annotation[ServiceAnnotationLoadBalancerRsNum]
+	loadBalancerRsNum, ok := annotation[ServiceAnnotationLoadBalancerRsMaxNum]
 	if ok {
 		i, err := strconv.Atoi(loadBalancerRsNum)
 		if err != nil {
-			return nil, fmt.Errorf("ServiceAnnotationLoadBalancerRsNum must be int, err: %v", err)
+			return nil, fmt.Errorf("ServiceAnnotationLoadBalancerRsMaxNum must be int, err: %v", err)
 		} else if i <= 0 || i > BLBMaxRSNum {
-			return nil, fmt.Errorf("ServiceAnnotationLoadBalancerRsNum must be in (0, 50)")
+			return nil, fmt.Errorf("ServiceAnnotationLoadBalancerRsMaxNum must be in (0, 50)")
 		} else {
-			result.LoadBalancerRsNum = i
+			result.LoadBalancerRsMaxNum = i
 		}
 	}
 
