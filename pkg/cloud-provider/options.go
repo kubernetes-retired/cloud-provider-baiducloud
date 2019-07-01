@@ -27,8 +27,8 @@ import (
 const (
 	// ServiceAnnotationLoadBalancerPrefix is the annotation prefix of LoadBalancer
 	ServiceAnnotationLoadBalancerPrefix = "service.beta.kubernetes.io/cce-load-balancer-"
-	// ServiceAnnotationLoadBalancerId is the annotation of LoadBalancerId
-	ServiceAnnotationLoadBalancerId = ServiceAnnotationLoadBalancerPrefix + "id"
+	// CceAutoAddLoadBalancerId is the annotation of CCE adding LoadBalancerId
+	ServiceAnnotationCceAutoAddLoadBalancerId = ServiceAnnotationLoadBalancerPrefix + "cce-add-id"
 
 	ServiceAnnotationLoadBalancerExistId = ServiceAnnotationLoadBalancerPrefix + "exist-id"
 	// ServiceAnnotationLoadBalancerInternalVpc is the annotation of LoadBalancerInternalVpc
@@ -39,6 +39,7 @@ const (
 	ServiceAnnotationLoadBalancerSubnetId = ServiceAnnotationLoadBalancerPrefix + "subnet-id"
 	// ServiceAnnotationLoadBalancerRsMaxNum is the annotation which set max num of rs of the BLB
 	ServiceAnnotationLoadBalancerRsMaxNum = ServiceAnnotationLoadBalancerPrefix + "rs-max-num"
+
 	// TODO:
 	// ServiceAnnotationLoadBalancerScheduler is the annotation of load balancer which can be "RoundRobin"/"LeastConnection"/"Hash"
 	ServiceAnnotationLoadBalancerScheduler = ServiceAnnotationLoadBalancerPrefix + "scheduler"
@@ -89,13 +90,14 @@ const (
 // ServiceAnnotation contains annotations from service
 type ServiceAnnotation struct {
 	/* BLB */
-	LoadBalancerId                         string
+	CceAutoAddLoadBalancerId               string
 	LoadBalancerExistId                    string
 	LoadBalancerInternalVpc                string
 	LoadBalancerAllocateVip                string
 	LoadBalancerSubnetId                   string
 	LoadBalancerScheduler                  string
 	LoadBalancerRsMaxNum                   int
+
 	LoadBalancerHealthCheckTimeoutInSecond int
 	LoadBalancerHealthCheckInterval        int
 	LoadBalancerUnhealthyThreshold         int
@@ -127,9 +129,9 @@ func ExtractServiceAnnotation(service *v1.Service) (*ServiceAnnotation, error) {
 		annotation[k] = v
 	}
 
-	loadBalancerId, exist := annotation[ServiceAnnotationLoadBalancerId]
+	loadBalancerId, exist := annotation[ServiceAnnotationCceAutoAddLoadBalancerId]
 	if exist {
-		result.LoadBalancerId = loadBalancerId
+		result.CceAutoAddLoadBalancerId = loadBalancerId
 	}
 
 	LoadBalancerExistId, exist := annotation[ServiceAnnotationLoadBalancerExistId]
