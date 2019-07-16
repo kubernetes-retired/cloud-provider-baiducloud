@@ -19,9 +19,8 @@ package cloud_provider
 import (
 	"fmt"
 
-	"k8s.io/api/core/v1"
-
 	"github.com/golang/glog"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/cloud-provider-baiducloud/pkg/cloud-sdk/blb"
 )
 
@@ -208,6 +207,20 @@ func (bc *Baiducloud) deleteListener(lb *blb.LoadBalancer, pl []PortListener) er
 	err := bc.clientSet.Blb().DeleteListeners(&args)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func (bc *Baiducloud) deleteAllListeners(lb *blb.LoadBalancer) error {
+	allListeners, err := bc.getAllListeners(lb)
+	if err != nil {
+		return err
+	}
+	if len(allListeners) > 0 {
+		err = bc.deleteListener(lb, allListeners)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
