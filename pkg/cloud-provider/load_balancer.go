@@ -175,7 +175,7 @@ func (bc *Baiducloud) EnsureLoadBalancerDeleted(ctx context.Context, clusterName
 		}
 
 		//get allServers & delete BackendServers
-		err = bc.removeAllBackendServers(lb)
+		err = bc.deleteAllBackendServers(lb)
 		if err != nil {
 			return err
 		}

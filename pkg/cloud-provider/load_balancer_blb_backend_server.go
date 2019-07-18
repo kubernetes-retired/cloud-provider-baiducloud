@@ -187,7 +187,7 @@ func (bc *Baiducloud) getAllBackendServer(lb *blb.LoadBalancer) ([]blb.BackendSe
 	return bs, nil
 }
 
-func (bc *Baiducloud) removeAllBackendServers(lb *blb.LoadBalancer) error {
+func (bc *Baiducloud) deleteAllBackendServers(lb *blb.LoadBalancer) error {
 	allServers, err := bc.getAllBackendServer(lb)
 	var removeList []string
 	if err != nil {

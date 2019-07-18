@@ -1,9 +1,10 @@
 package cloud_provider
 
 import (
+	"testing"
+
 	api "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func buildService() *api.Service {
