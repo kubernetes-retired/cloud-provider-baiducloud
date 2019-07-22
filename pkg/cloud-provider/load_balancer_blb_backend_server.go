@@ -186,3 +186,26 @@ func (bc *Baiducloud) getAllBackendServer(lb *blb.LoadBalancer) ([]blb.BackendSe
 	}
 	return bs, nil
 }
+
+func (bc *Baiducloud) deleteAllBackendServers(lb *blb.LoadBalancer) error {
+	allServers, err := bc.getAllBackendServer(lb)
+	var removeList []string
+	if err != nil {
+		return err
+	}
+	for _, server := range allServers {
+		removeList = append(removeList, server.InstanceId)
+	}
+
+	if len(removeList) > 0 {
+		args := blb.RemoveBackendServersArgs{
+			LoadBalancerId:    lb.BlbId,
+			BackendServerList: removeList,
+		}
+		err = bc.clientSet.Blb().RemoveBackendServers(&args)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
