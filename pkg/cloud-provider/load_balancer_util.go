@@ -76,17 +76,17 @@ func (bc *Baiducloud) getBLBByName(ctx context.Context, name string) (lb *blb.Lo
 	lbs, err := bc.clientSet.BLBClient.DescribeLoadBalancers(ctx, &args, bc.getSignOption(ctx))
 	if err != nil {
 		klog.Errorf(Message(ctx, fmt.Sprintf("getBLBByName failed: %s", err)))
-		return &blb.LoadBalancer{}, false, err
+		return nil, false, err
 	}
 
 	if len(lbs) == 0 {
 		klog.Info(Message(ctx, fmt.Sprintf("BLB named %s not exist", name)))
-		return &blb.LoadBalancer{}, false, nil
+		return nil, false, nil
 	}
 	if len(lbs) > 1 {
 		msg := fmt.Sprintf("multi BLB named %s exist", name)
 		klog.Warning(Message(ctx, msg))
-		return &blb.LoadBalancer{}, false, fmt.Errorf(msg)
+		return nil, false, fmt.Errorf(msg)
 	}
 
 	return &lbs[0], true, nil
@@ -103,12 +103,12 @@ func (bc *Baiducloud) getBLBByID(ctx context.Context, id string) (lb *blb.LoadBa
 	lbs, err := bc.clientSet.BLBClient.DescribeLoadBalancers(ctx, &args, bc.getSignOption(ctx))
 	if err != nil {
 		klog.Infof(Message(ctx, fmt.Sprintf("getBLBByID blb %s not exists: %v", args.LoadBalancerId, err)))
-		return &blb.LoadBalancer{}, false, err
+		return nil, false, err
 	}
 	if len(lbs) == 0 {
 		msg := fmt.Sprintf("BLB with id %s not exist", id)
 		klog.Warning(Message(ctx, msg))
-		return &blb.LoadBalancer{}, false, fmt.Errorf(msg)
+		return nil, false, fmt.Errorf(msg)
 	}
 	return &lbs[0], true, nil
 }
