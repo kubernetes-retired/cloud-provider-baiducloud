@@ -139,7 +139,8 @@ func (bc *Baiducloud) getServiceAssociatedBLB(ctx context.Context, clusterName s
 
 func (bc *Baiducloud) ensureBLBDeleted(ctx context.Context, lb *blb.LoadBalancer) error {
 	if lb == nil {
-		return fmt.Errorf("ensureBLBDeleted failed, lb is nil")
+		klog.Warningf(Message(ctx, fmt.Sprintf("lb is nil, skip delete")))
+		return nil
 	}
 	return bc.clientSet.BLBClient.DeleteLoadBalancer(
 		ctx,
