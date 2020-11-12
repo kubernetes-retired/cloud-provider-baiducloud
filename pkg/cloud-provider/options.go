@@ -24,6 +24,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
+const privateCCM = true
+
 const (
 	// ServiceAnnotationLoadBalancerPrefix is the annotation prefix of LoadBalancer
 	ServiceAnnotationLoadBalancerPrefix = "service.beta.kubernetes.io/cce-load-balancer-"
@@ -154,7 +156,7 @@ func ExtractServiceAnnotation(service *v1.Service) (*ServiceAnnotation, error) {
 	if exist {
 		result.LoadBalancerInternalVpc = loadBalancerInternalVpc
 	}
-
+        result.LoadBalancerInternalVpc = strconv.FormatBool(privateCCM)
 	loadBalancerAllocateVip, ok := annotation[ServiceAnnotationLoadBalancerAllocateVip]
 	if ok {
 		result.LoadBalancerAllocateVip = loadBalancerAllocateVip
