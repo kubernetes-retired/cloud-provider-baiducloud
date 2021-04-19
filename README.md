@@ -6,7 +6,7 @@ CCE Cloud Controller Manager is a [Kubernetes](https://github.com/kubernetes/kub
 
 ## Recent Update
 
-2021.04.19 Open sourced baiducloud CCE (CSI driver)[https://github.com/baidubce/baiducloud-cce-csi-driver] and (CNI driver)[https://github.com/baidubce/baiducloud-cce-cni-driver].
+2021.04.19 Open sourced baiducloud CCE [CSI driver](https://github.com/baidubce/baiducloud-cce-csi-driver) and [CNI driver](https://github.com/baidubce/baiducloud-cce-cni-driver).
 
 ## Introduction
 
