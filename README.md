@@ -4,6 +4,10 @@
 
 CCE Cloud Controller Manager is a [Kubernetes](https://github.com/kubernetes/kubernetes) Cloud Controller Manager implementation (or out-of-tree cloud-provider) for Cloud-Container-Engine(CCE) on [Baidu Cloud](https://cloud.baidu.com).
 
+## Recent Update
+
+2021.04.19 Open sourced baiducloud CCE (CSI driver)[https://github.com/baidubce/baiducloud-cce-csi-driver] and (CNI driver)[https://github.com/baidubce/baiducloud-cce-cni-driver].
+
 ## Introduction
 
 External cloud providers were introduced as an Alpha feature in Kubernetes 1.6 with the addition of the Cloud Controller Manager binary. External cloud providers are Kubernetes (master) controllers that implement the cloud-provider specific control loops required for Kubernetes to function.
